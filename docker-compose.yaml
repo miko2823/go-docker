@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    tty: true
+    volumes:
+      - .:/go/src/app
+    ports:
+      - 9000:9000
+    command: ["go", "run", "server.go"]
+  
