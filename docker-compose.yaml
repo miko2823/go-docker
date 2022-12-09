@@ -1,10 +1,53 @@
 services:
-  app:
-    build: .
+  broker-service:
+    build: ./serverside
     tty: true
     volumes:
-      - .:/go/src/app
+      - ./serverside:/app
+    restart: always
     ports:
       - 9000:9000
-    command: ["go", "run", "server.go"]
+    deploy:
+      mode: replicated
+      replicas: 1
   
+  authentication:
+    build: ./authentication
+    tty: true
+    volumes:
+      - ./authentication:/app
+    restart: always
+    ports:
+      - 8088:8088
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      - DNS=host=postgres port=5432 user=postgres password=postgres dbname=users
+  
+  front-end:
+    build: ./front-end
+    tty: true
+    volumes:
+      - ./front-end:/app
+    restart: always
+    ports:
+      - 8080:80
+    deploy:
+      mode: replicated
+      replicas: 1
+  
+  postgres:
+    image: 'postgres:14.2'
+    ports:
+      - "5432:5432"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users
+    volumes:
+      - ./db-data/postgres/:/var/lib/postgresql/data/
