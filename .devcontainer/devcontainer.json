@@ -2,7 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.195.0/containers/go
 {
 	"name": "Go",
-	"service": "authentication",
+	"service": "broker-service",
 	"workspaceFolder": "/app",
 	"shutdownAction": "stopCompose",
 	"dockerComposeFile": [
