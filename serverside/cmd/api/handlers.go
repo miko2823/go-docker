@@ -4,17 +4,27 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/rpc"
+
+	"github.com/miko2823/go-docker/event"
 )
 
 type RequestPayload struct {
 	Action string      `json:"action"`
 	Auth   AuthPayload `json:"auth,omitempty"`
+	Log    LogPyaload  `json:"log,omitempty"`
 }
 
 type AuthPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type LogPyaload struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
 }
 
 func (app *Config) Broker(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +50,10 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 
 	case "auth":
 		app.authenticate(w, requestPayload.Auth)
+	case "authViaRPC":
+		app.authViaRPC(w, requestPayload.Auth)
+	case "log":
+		app.logEventViaRabbit(w, requestPayload.Log)
 
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
@@ -99,5 +113,69 @@ func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {
 	payload.Message = "Authenticated"
 	payload.Data = jsonFromService.Data
 
+	app.writeJson(w, http.StatusAccepted, payload)
+}
+
+func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPyaload) {
+	err := app.pushToQueue(l.Name, l.Data)
+
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "logged via RabbitMQ"
+
+	app.writeJson(w, http.StatusAccepted, payload)
+}
+
+func (app *Config) pushToQueue(name, msg string) error {
+	emitter, err := event.NewEventEmitter(app.Rabbit)
+
+	if err != nil {
+		return err
+	}
+
+	payload := LogPyaload{
+		Name: name,
+		Data: msg,
+	}
+
+	j, _ := json.MarshalIndent(&payload, "", "\t")
+	err = emitter.Push(string(j), "log.INFO")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type RPCPayload struct {
+	Email    string
+	Password string
+}
+
+func (app *Config) authViaRPC(w http.ResponseWriter, a AuthPayload) {
+	client, err := rpc.Dial("tcp", "authentication:5001")
+	fmt.Println(err)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	rpcPayload := RPCPayload{
+		Email:    a.Email,
+		Password: a.Password,
+	}
+	var result string
+	err = client.Call("RPCServer.Auth", rpcPayload, &result)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	payload := jsonResponse{
+		Error:   false,
+		Message: result,
+	}
 	app.writeJson(w, http.StatusAccepted, payload)
 }
