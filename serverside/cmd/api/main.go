@@ -14,6 +14,7 @@ import (
 const webPort = "9000"
 
 type Config struct {
+	Env    Environment
 	Rabbit *amqp.Connection
 }
 
@@ -26,7 +27,10 @@ func main() {
 	defer rabbitConn.Close()
 	log.Println("Connected to RabbitMQ")
 
+	env, err := getEnvironment()
+
 	app := Config{
+		Env:    env,
 		Rabbit: rabbitConn,
 	}
 

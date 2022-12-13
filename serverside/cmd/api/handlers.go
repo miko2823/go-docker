@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/rpc"
 	"time"
@@ -163,7 +162,7 @@ type RPCPayload struct {
 
 func (app *Config) authViaRPC(w http.ResponseWriter, a AuthPayload) {
 	client, err := rpc.Dial("tcp", "authentication:5001")
-	fmt.Println(err)
+
 	if err != nil {
 		app.errorJSON(w, err)
 		return
