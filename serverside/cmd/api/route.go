@@ -24,6 +24,8 @@ func (app *Config) routes() http.Handler {
 	mux.Post("/", app.Broker)
 
 	mux.Post("/handle", app.HandleSubmission)
-	
+
+	mux.Post("/auth-via-grpc", app.AuthViaGRPC)
+
 	return mux
 }

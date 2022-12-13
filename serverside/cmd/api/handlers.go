@@ -2,13 +2,18 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/rpc"
+	"time"
 
+	"github.com/miko2823/go-docker/auth"
 	"github.com/miko2823/go-docker/event"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RequestPayload struct {
@@ -177,5 +182,47 @@ func (app *Config) authViaRPC(w http.ResponseWriter, a AuthPayload) {
 		Error:   false,
 		Message: result,
 	}
+	app.writeJson(w, http.StatusAccepted, payload)
+}
+
+func (app *Config) AuthViaGRPC(w http.ResponseWriter, r *http.Request) {
+	var requestPayload RequestPayload
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	conn, err := grpc.Dial(
+		"authentication:50001",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock())
+
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	defer conn.Close()
+	c := auth.NewAuthServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+
+	defer cancel()
+
+	_, err = c.CheckAuth(ctx, &auth.AuthRequest{
+		AuthEntry: &auth.Auth{
+			Email:    requestPayload.Auth.Email,
+			Password: requestPayload.Auth.Password,
+		},
+	})
+
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "Auth Success!"
+
 	app.writeJson(w, http.StatusAccepted, payload)
 }

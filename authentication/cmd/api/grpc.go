@@ -3,6 +3,7 @@ package main
 import (
 	"authentication/auth"
 	"authentication/data"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -15,7 +16,7 @@ type AuthServer struct {
 	Models data.Models
 }
 
-func (a *AuthServer) CheckAuth(req *auth.AuthRequest) (*auth.AuthResponse, error) {
+func (a *AuthServer) CheckAuth(ctx context.Context, req *auth.AuthRequest) (*auth.AuthResponse, error) {
 	input := req.GetAuthEntry()
 
 	user, err := a.Models.User.GetByEmail(input.Email)
@@ -28,7 +29,7 @@ func (a *AuthServer) CheckAuth(req *auth.AuthRequest) (*auth.AuthResponse, error
 		return &auth.AuthResponse{Result: "failed"}, err
 	}
 
-	return &auth.AuthResponse{Result: "success"}, nil
+	return &auth.AuthResponse{Result: "success??"}, nil
 
 }
 

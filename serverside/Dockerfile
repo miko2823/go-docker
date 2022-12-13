@@ -1,8 +1,10 @@
 FROM golang:1.19.3-alpine as builder
 
-RUN apk update && apk add git
+RUN apk update && apk add git make protobuf-dev
 
 RUN go install golang.org/x/tools/cmd/goimports@latest
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 
 COPY . /app
 
