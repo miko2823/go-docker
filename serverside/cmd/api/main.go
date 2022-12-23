@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -13,12 +14,16 @@ import (
 
 const webPort = "9000"
 
+var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
+
 type Config struct {
-	Env    Environment
-	Rabbit *amqp.Connection
+	Env     Environment
+	Rabbit  *amqp.Connection
+	Routing Routing
 }
 
 func main() {
+
 	rabbitConn, err := connect()
 	if err != nil {
 		log.Println(err)
@@ -28,18 +33,20 @@ func main() {
 	log.Println("Connected to RabbitMQ")
 
 	env, err := getEnvironment()
+	log.Println("get Config", env)
 
-	app := Config{
-		Env:    env,
-		Rabbit: rabbitConn,
-	}
+	// app := Config{
+	// 	Env:    env,
+	// 	Rabbit: rabbitConn,
+	// }
 
-	log.Printf("Starting broker service on port %s\n", webPort)
+	var routing = Routing{}
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", webPort),
-		Handler: app.routes(),
+		Handler: routing.buildHandler(),
 	}
+	log.Printf("Starting broker service on port %s\n", webPort)
 
 	err = server.ListenAndServe()
 	if err != nil {

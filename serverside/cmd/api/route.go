@@ -1,14 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/miko2823/go-docker/handler"
+	"github.com/miko2823/go-docker/infrastructure/persistence"
+	"github.com/miko2823/go-docker/usecase"
 )
 
-func (app *Config) routes() http.Handler {
+type Routing struct {
+}
+
+func (routing *Routing) buildHandler() http.Handler {
+	fmt.Println("buildHandler")
 	mux := chi.NewRouter()
 	mux.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -20,12 +28,28 @@ func (app *Config) routes() http.Handler {
 	}))
 
 	mux.Use(middleware.Heartbeat("/ping"))
+	mux.Use(middleware.RequestID)
+	mux.Use(middleware.RealIP)
+	mux.Use(middleware.Logger)
+	mux.Use(middleware.Recoverer)
 
-	mux.Post("/", app.Broker)
+	albumPersistence := persistence.NewAlbumPersistence()
+	albumUseCase := usecase.NewAlbumUsecase(albumPersistence)
+	albumHandler := handler.NewAlbumHandler(albumUseCase)
 
-	mux.Post("/handle", app.HandleSubmission)
+	// mux.Route("/v1", func(r chi.Router) {
+	// v1を外にだしたい
+	mux.Mount("/v1/album", albumHandler.RegisterHandlers())
+	// })
 
-	mux.Post("/auth-via-grpc", app.AuthViaGRPC)
+	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		fmt.Printf("%s %s\n", method, route)
+		return nil
+	}
+
+	if err := chi.Walk(mux, walkFunc); err != nil {
+		fmt.Printf("Logging err: %s\n", err.Error())
+	}
 
 	return mux
 }

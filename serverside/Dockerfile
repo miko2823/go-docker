@@ -10,6 +10,14 @@ COPY . /app
 
 WORKDIR /app
 
+COPY go.* ./
+
+RUN go mod download
+
+RUN go mod verify
+
+RUN go install -v github.com/rogpeppe/godef@v1.1.2
+
 # RUN CGO_ENABLED=0 go build -o brokerApp ./cmd/api
 
 # RUN chmod +x /app/brokerApp

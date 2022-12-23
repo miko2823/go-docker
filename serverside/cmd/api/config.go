@@ -14,11 +14,11 @@ type Environment struct {
 }
 
 func getEnvironment() (Environment, error) {
-	f, err := os.Open("./cmd/api/config/dev.json")
+	f, err := os.Open("./config/dev.json")
 	os_env := os.Getenv("env")
 
 	if os_env == "prod" {
-		f, err = os.Open("./cmd/api/config/prod.json")
+		f, err = os.Open("./config/prod.json")
 		if err != nil {
 			return Environment{}, err
 		}
