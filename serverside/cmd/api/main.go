@@ -1,7 +1,7 @@
 package main
 
 import (
-	"flag"
+	"database/sql"
 	"fmt"
 	"log"
 	"math"
@@ -9,17 +9,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/miko2823/go-docker/config"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const webPort = "9000"
 
-var flagConfig = flag.String("config", "./config/local.yml", "path to the config file")
-
 type Config struct {
-	Env     Environment
-	Rabbit  *amqp.Connection
-	Routing Routing
+	Env      config.Environment
+	Rabbit   *amqp.Connection
+	Postgres *sql.DB
 }
 
 func main() {
@@ -32,15 +31,25 @@ func main() {
 	defer rabbitConn.Close()
 	log.Println("Connected to RabbitMQ")
 
-	env, err := getEnvironment()
-	log.Println("get Config", env)
+	postgresConn, err := config.ConnectToDB()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 
-	// app := Config{
-	// 	Env:    env,
-	// 	Rabbit: rabbitConn,
-	// }
+	env, err := config.GetEnvironment()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 
-	var routing = Routing{}
+	app := Config{
+		Env:      env,
+		Postgres: postgresConn,
+		Rabbit:   rabbitConn,
+	}
+
+	var routing = Routing{app}
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", webPort),

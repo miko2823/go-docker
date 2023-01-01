@@ -13,6 +13,7 @@ import (
 )
 
 type Routing struct {
+	config Config
 }
 
 func (routing *Routing) buildHandler() http.Handler {
@@ -33,7 +34,7 @@ func (routing *Routing) buildHandler() http.Handler {
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 
-	albumPersistence := persistence.NewAlbumPersistence()
+	albumPersistence := persistence.NewAlbumPersistence(routing.config.Postgres)
 	albumUseCase := usecase.NewAlbumUsecase(albumPersistence)
 	albumHandler := handler.NewAlbumHandler(albumUseCase)
 

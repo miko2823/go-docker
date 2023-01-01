@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/miko2823/go-docker/pkg"
 	"github.com/miko2823/go-docker/usecase"
@@ -23,21 +24,22 @@ func NewAlbumHandler(usecase usecase.AlbumUsecase) AlbumHandler {
 
 func (p albumHandler) getAlbum(w http.ResponseWriter, r *http.Request) {
 
-	// get payload
-	var requestPayload struct {
-		Id string `json:"id"`
-	}
-	err := pkg.ReadJSON(w, r, &requestPayload)
+	// var requestPayload struct {
+	// 	Id string `json:"id"`
+	// }
+	// err := pkg.ReadJSON(w, r, &requestPayload)
+	// fmt.Println(err)
+	// if err != nil {
+	// 	pkg.ErrorJSON(w, err, http.StatusBadRequest)
+	// }
+
+	id := strings.TrimPrefix(r.URL.Path, "/v1/album/")
+	album, err := p.albumUsecase.Get(id)
+
 	if err != nil {
 		pkg.ErrorJSON(w, err, http.StatusBadRequest)
 	}
 
-	album, err := p.albumUsecase.Get(requestPayload.Id)
-	if err != nil {
-		pkg.ErrorJSON(w, err, http.StatusBadRequest)
-	}
-
-	// return Payload
 	payload := pkg.JsonResponse{
 		Error:   false,
 		Message: fmt.Sprintf("get album data"),
